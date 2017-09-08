@@ -1,12 +1,15 @@
 package com.example.leesanghoon.newepubreader.Adapter;
 
+import android.content.Context;
+import android.content.Intent;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import com.example.leesanghoon.newepubreader.Model.Book;
+import com.example.leesanghoon.newepubreader.Activity.ReaderViewActivity;
+import com.example.leesanghoon.newepubreader.Model.BookItem;
 import com.example.leesanghoon.newepubreader.R;
 
 import java.util.List;
@@ -17,9 +20,9 @@ import java.util.List;
 
 public class MainAdapter extends RecyclerView.Adapter<MainAdapter.ViewHolder>{
 
-    private List<Book> bookList;
+    private List<BookItem> bookList;
 
-    public MainAdapter(List<Book> items) {
+    public MainAdapter(List<BookItem> items) {
         this.bookList = items;
     }
 
@@ -31,9 +34,18 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.ViewHolder>{
 
     @Override
     public void onBindViewHolder(MainAdapter.ViewHolder holder, int position) {
-        Book book = bookList.get(position);
-        holder.nameTv.setText("Name => "+book.name);
+        final BookItem book = bookList.get(position);
+        holder.nameTv.setText(book.name);
         holder.pathTv.setText("Path => "+book.path);
+        holder.itemView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Context c = view.getContext();
+                Intent intent = new Intent(c,ReaderViewActivity.class);
+                intent.putExtra("bookItem",book);
+                c.startActivity(intent);
+            }
+        });
     }
 
     @Override

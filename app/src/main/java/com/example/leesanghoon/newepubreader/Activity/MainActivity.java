@@ -9,7 +9,7 @@ import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 
 import com.example.leesanghoon.newepubreader.Adapter.MainAdapter;
-import com.example.leesanghoon.newepubreader.Model.Book;
+import com.example.leesanghoon.newepubreader.Model.BookItem;
 import com.example.leesanghoon.newepubreader.R;
 
 import java.io.File;
@@ -17,7 +17,7 @@ import java.util.ArrayList;
 
 public class MainActivity extends RootActivity {
 
-    ArrayList<Book> bookList;
+    ArrayList<BookItem> bookList;
     RecyclerView recyclerView;
 
     @Override
@@ -27,7 +27,7 @@ public class MainActivity extends RootActivity {
 
         showProgress(MainActivity.this,"폰에서 모든 ePub파일들을 가져오고 있습니다.\n잠시만 기다려주세요.");
 
-        bookList = new ArrayList<Book>();
+        bookList = new ArrayList<BookItem>();
         recyclerView = (RecyclerView)findViewById(R.id.recyclerView);
 
         BackThread thread = new BackThread();
@@ -57,7 +57,7 @@ public class MainActivity extends RootActivity {
                 searchAllFiles(file);
             }
             if (file.getName().endsWith(".epub")) {
-                bookList.add(new Book(file.getName(),file.getAbsolutePath()));
+                bookList.add(new BookItem(file.getName(),file.getAbsolutePath()));
                 Log.e("MainActivity",file.getName());
             }
         }
