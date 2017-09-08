@@ -1,6 +1,9 @@
 package com.example.leesanghoon.newepubreader.Activity;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.v4.view.ViewPager;
 import android.util.Log;
 import android.view.View;
@@ -14,10 +17,15 @@ import com.example.leesanghoon.newepubreader.R;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.util.List;
 
 import nl.siegmann.epublib.domain.Book;
+import nl.siegmann.epublib.domain.MediaType;
+import nl.siegmann.epublib.domain.Resource;
 import nl.siegmann.epublib.epub.EpubReader;
+import nl.siegmann.epublib.service.MediatypeService;
 
 /**
  * Created by leesanghoon on 2017. 9. 7..
@@ -40,7 +48,9 @@ public class ReaderViewActivity extends RootActivity {
 
         backBtn = (ImageView)findViewById(R.id.backBtn);
         titleText = (TextView)findViewById(R.id.bookTitleTv);
+
         webView = (WebView)findViewById(R.id.webView);
+        webView.getSettings().setJavaScriptEnabled(true);
 
 
         currentBook = (BookItem)getIntent().getParcelableExtra("bookItem");
@@ -86,8 +96,32 @@ public class ReaderViewActivity extends RootActivity {
                 fullHtml = fullHtml + buffer.toString();
             }
 
-            Log.e("ReaderViewActivity","full Html => "+fullHtml);
-            webView.loadData(fullHtml,"text/html; charset=UTF-8",null);
+            // 웹뷰에서 이미지 안나오는것들 처리
+            MediaType[] bitmapTypes = {MediatypeService.PNG, MediatypeService.GIF, MediatypeService.JPG};
+            List<Resource> bitmapResources = book.getResources().getResourcesByMediaTypes(bitmapTypes);
+
+            for(Resource r: bitmapResources) {
+                Bitmap bm = BitmapFactory.decodeByteArray(r.getData(),0,r.getData().length);
+                FileOutputStream out = null;
+                try{
+                    String dirPath = Environment.getExternalStorageDirectory().toString() + "/NewEpubReader";
+                    File tempFile = new File(dirPath);
+                    if(!tempFile.exists()) {
+                        tempFile.mkdirs();
+                    }
+                    String filename = "/NewEpubReader/"+r.getHref();
+                    FileOutputStream fos = new FileOutputStream(Environment.getExternalStorageDirectory().toString()+filename);
+                    bm.compress(Bitmap.CompressFormat.JPEG,100,fos);
+                    fullHtml = fullHtml.replace("<img src=\""+r.getHref()+"\"/>","<img src=\"file://"+Environment.getExternalStorageDirectory().getAbsolutePath()+filename+"\"/>");
+
+                } catch(Exception e){
+                    e.printStackTrace();
+                }
+            }
+
+            Log.e("ReaderViewActivity","After Html => "+fullHtml);
+//            webView.loadData(fullHtml,"text/html; charset=UTF-8",null);
+            webView.loadDataWithBaseURL("file:///android_asset/",fullHtml,"text/html","utf-8",null);
         } catch (Exception e) {
             Toast.makeText(ReaderViewActivity.this,"정상적인 ePub 파일이 아닙니다.",Toast.LENGTH_SHORT).show();
             e.printStackTrace();
