@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.List;
 
 import nl.siegmann.epublib.domain.Book;
@@ -102,7 +103,6 @@ public class ReaderViewActivity extends RootActivity {
 
             for(Resource r: bitmapResources) {
                 Bitmap bm = BitmapFactory.decodeByteArray(r.getData(),0,r.getData().length);
-                FileOutputStream out = null;
                 try{
                     String dirPath = Environment.getExternalStorageDirectory().toString() + "/NewEpubReader";
                     File tempFile = new File(dirPath);
@@ -110,14 +110,46 @@ public class ReaderViewActivity extends RootActivity {
                         tempFile.mkdirs();
                     }
                     String filename = "/NewEpubReader/"+r.getHref();
+
                     FileOutputStream fos = new FileOutputStream(Environment.getExternalStorageDirectory().toString()+filename);
                     bm.compress(Bitmap.CompressFormat.JPEG,100,fos);
                     fullHtml = fullHtml.replace("<img src=\""+r.getHref()+"\"/>","<img src=\"file://"+Environment.getExternalStorageDirectory().getAbsolutePath()+filename+"\"/>");
-
                 } catch(Exception e){
                     e.printStackTrace();
                 }
             }
+
+            //CSS 파일 처리
+            MediaType bitmapType = MediatypeService.CSS;
+            List<Resource> cssResources = book.getResources().getResourcesByMediaType(bitmapType);
+            for(Resource r: cssResources) {
+                Log.e("ReaderViewActivity","r get Id => "+r.getId());
+                Log.e("ReaderViewActivity","r get Href => "+r.getHref());
+                Log.e("ReaderViewActivity","r get String => "+r.toString());
+                Log.e("ReaderViewActivity","r get InputStream => "+r.getInputStream());
+
+                String filename = "/NewEpubReader/"+r.getHref();
+
+                File f = new File(filename);
+
+                if(!f.exists()){
+                    try {
+                        OutputStream out = new FileOutputStream(new File(Environment.getExternalStorageDirectory().toString()+filename));
+                        byte[] buffer = new byte[1024];
+                        InputStream in = r.getInputStream();
+                        int len = in.read(buffer);
+                        while(len != -1){
+                            out.write(buffer,0,len);
+                            len=in.read(buffer);
+                        }
+                        fullHtml = fullHtml.replace("href=\""+r.getHref()+"\"","href=\"file://"+Environment.getExternalStorageDirectory().getAbsolutePath()+filename+"\"");
+                        out.close();
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
+                }
+            }
+
 
             Log.e("ReaderViewActivity","After Html => "+fullHtml);
 //            webView.loadData(fullHtml,"text/html; charset=UTF-8",null);
