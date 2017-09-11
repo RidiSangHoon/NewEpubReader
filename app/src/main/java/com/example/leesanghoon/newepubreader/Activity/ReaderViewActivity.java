@@ -6,8 +6,10 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.support.v4.view.ViewPager;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -52,6 +54,7 @@ public class ReaderViewActivity extends RootActivity {
 
         webView = (WebView)findViewById(R.id.webView);
         webView.getSettings().setJavaScriptEnabled(true);
+        webView.setWebViewClient(new MyWebViewClient());
 
 
         currentBook = (BookItem)getIntent().getParcelableExtra("bookItem");
@@ -109,11 +112,17 @@ public class ReaderViewActivity extends RootActivity {
                     if(!tempFile.exists()) {
                         tempFile.mkdirs();
                     }
+
                     String filename = "/NewEpubReader/"+r.getHref();
+
+                    createDirectory(r.getHref());
+
+                    Log.e("ReaderViewActivity",filename);
 
                     FileOutputStream fos = new FileOutputStream(Environment.getExternalStorageDirectory().toString()+filename);
                     bm.compress(Bitmap.CompressFormat.JPEG,100,fos);
-                    fullHtml = fullHtml.replace("<img src=\""+r.getHref()+"\"/>","<img src=\"file://"+Environment.getExternalStorageDirectory().getAbsolutePath()+filename+"\"/>");
+                    fullHtml = fullHtml.replace("src=\""+r.getHref()+"\"/>","src=\"file://"+Environment.getExternalStorageDirectory().getAbsolutePath()+filename+"\"");
+                    fullHtml = fullHtml.replace("src=\"../"+r.getHref()+"\"/>","src=\"file://"+Environment.getExternalStorageDirectory().getAbsolutePath()+filename+"\"");
                 } catch(Exception e){
                     e.printStackTrace();
                 }
@@ -130,6 +139,8 @@ public class ReaderViewActivity extends RootActivity {
 
                 String filename = "/NewEpubReader/"+r.getHref();
 
+                createDirectory(r.getHref());
+
                 File f = new File(filename);
 
                 if(!f.exists()){
@@ -143,6 +154,7 @@ public class ReaderViewActivity extends RootActivity {
                             len=in.read(buffer);
                         }
                         fullHtml = fullHtml.replace("href=\""+r.getHref()+"\"","href=\"file://"+Environment.getExternalStorageDirectory().getAbsolutePath()+filename+"\"");
+                        fullHtml = fullHtml.replace("href=\"../"+r.getHref()+"\"","href=\"file://"+Environment.getExternalStorageDirectory().getAbsolutePath()+filename+"\"");
                         out.close();
                     }catch (Exception e){
                         e.printStackTrace();
@@ -152,12 +164,46 @@ public class ReaderViewActivity extends RootActivity {
 
 
             Log.e("ReaderViewActivity","After Html => "+fullHtml);
+
 //            webView.loadData(fullHtml,"text/html; charset=UTF-8",null);
             webView.loadDataWithBaseURL("file:///android_asset/",fullHtml,"text/html","utf-8",null);
         } catch (Exception e) {
             Toast.makeText(ReaderViewActivity.this,"정상적인 ePub 파일이 아닙니다.",Toast.LENGTH_SHORT).show();
             e.printStackTrace();
             finish();
+        }
+    }
+
+    // r.getHref에 폴더를 포함하는 경우 처리
+    public void createDirectory(String path) {
+        Log.e("ReaderViewActivity","path => "+path);
+        String currentPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/NewEpubReader";
+        if(path.contains("/")) {
+            String str[] = path.split("/");
+            for(int i = 0;i<str.length-1;i++){ // 마지막은 파일이므로 -1
+                currentPath = currentPath + "/"+str[i];
+                File tempFile = new File(currentPath);
+                if(!tempFile.exists()) {
+                    tempFile.mkdirs();
+                }
+            }
+        } else {
+            Log.e("ReaderViewActivity","Return");
+            return;
+        }
+    }
+
+    //link 태그 막기 
+    public class MyWebViewClient extends WebViewClient {
+        @Override
+        public boolean shouldOverrideKeyEvent(WebView view, KeyEvent event) {
+            return true;
+        }
+
+        @Override
+        public boolean shouldOverrideUrlLoading(WebView view, String url) {
+            Log.e("ReaderViewActivity","url => "+url);
+            return true;
         }
     }
 
