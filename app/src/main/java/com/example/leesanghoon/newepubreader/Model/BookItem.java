@@ -10,6 +10,7 @@ import android.os.Parcelable;
 public class BookItem implements Parcelable {
     public String name;
     public String path;
+
     public BookItem(String name, String path) {
         this.name = name;
         this.path = path;
@@ -28,6 +29,7 @@ public class BookItem implements Parcelable {
             return new BookItem[size];
         }
     };
+
     @Override
     public int describeContents() {
         return 0;
