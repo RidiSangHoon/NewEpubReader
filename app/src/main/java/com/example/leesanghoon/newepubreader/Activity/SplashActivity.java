@@ -29,7 +29,8 @@ public class SplashActivity extends Activity {
 
             @Override
             public void onPermissionDenied(ArrayList<String> deniedPermissions) {
-                Toast.makeText(SplashActivity.this, "권한을 설정하셔야 이용하실 수 있습니다.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(SplashActivity.this, "권한을 설정하셔야 이용하실 수 있습니다.", Toast.LENGTH_SHORT)
+                        .show();
                 finish();
             }
         };
@@ -37,7 +38,8 @@ public class SplashActivity extends Activity {
         TedPermission.with(SplashActivity.this)
                 .setPermissionListener(permissionListener)
                 .setDeniedMessage("권한을 설정하지 않으시면 서비스를 이용하실 수 없습니다")
-                .setPermissions(android.Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                .setPermissions(android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 .check();
     }
 }

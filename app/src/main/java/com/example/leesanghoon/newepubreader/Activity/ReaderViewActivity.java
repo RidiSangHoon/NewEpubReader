@@ -26,7 +26,7 @@ import java.util.ArrayList;
 
 public class ReaderViewActivity extends RootActivity {
 
-    private String contentLoc,oebpsFilePath,opfFilePath,ncxFilePath,fullHtml = "";
+    private String contentLoc, oebpsFilePath, opfFilePath, ncxFilePath, fullHtml = "";
 
     // 목차대로 저장하는 파일 리스트
     private ArrayList<String> fileSeqList = new ArrayList<>();
@@ -69,25 +69,27 @@ public class ReaderViewActivity extends RootActivity {
 
         if (!ZipTool.unzip(currentBook.path + "/")) {
             Log.e("ReaderViewActivity", "unzip Fail");
-            Toast.makeText(ReaderViewActivity.this, "ePub 파일 열기에 실패하였습니다.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(ReaderViewActivity.this, "ePub 파일 열기에 실패하였습니다.", Toast.LENGTH_SHORT)
+                    .show();
             finish();
             return;
         }
 
         //.epub 이기 때문에 -5
-        String folderPath = currentBook.path.substring(0, currentBook.path.length()-5);
+        String folderPath = currentBook.path.substring(0, currentBook.path.length() - 5);
 
         File containerXmlFile = new File(folderPath + "/META-INF/container.xml");
         if (!containerXmlFile.exists()) {
             Log.e("ReaderViewActivity", "file not exists");
-            Toast.makeText(ReaderViewActivity.this, "ePub 파일 열기에 실패하였습니다.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(ReaderViewActivity.this, "ePub 파일 열기에 실패하였습니다.", Toast.LENGTH_SHORT)
+                    .show();
             finish();
             return;
         }
 
         //container xml Parser
 
-        try{
+        try {
             FileInputStream is = new FileInputStream(containerXmlFile);
             XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
             XmlPullParser parser = factory.newPullParser();
@@ -108,7 +110,7 @@ public class ReaderViewActivity extends RootActivity {
                 }
                 eventType = parser.next();
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -122,7 +124,7 @@ public class ReaderViewActivity extends RootActivity {
 
         File[] list = new File(oebpsFilePath).listFiles();
 
-        for (File listItem: list) {
+        for (File listItem : list) {
             if (listItem.getName().endsWith(".opf")) {
                 opfFilePath = listItem.getAbsolutePath();
             }
@@ -156,7 +158,7 @@ public class ReaderViewActivity extends RootActivity {
             e.printStackTrace();
         }
 
-        for (String f: fileSeqList) {
+        for (String f : fileSeqList) {
             Log.e("ReaderViewActivity", "file list => " + f);
             addHtml(f, false);
         }
@@ -174,28 +176,55 @@ public class ReaderViewActivity extends RootActivity {
                     case XmlPullParser.START_TAG:
                         for (int i = 0; i < parser.getAttributeCount(); i++) {
                             //커버 페이지
-                            if (parser.getAttributeValue("", parser.getAttributeName(i)).endsWith("cover.xhtml") && !coverFlag) {
+                            if (parser.getAttributeValue("", parser.getAttributeName(i))
+                                    .endsWith("cover.xhtml") && !coverFlag) {
                                 coverFlag = true;
-                                addHtml(parser.getAttributeValue("", parser.getAttributeName(i)), true);
+                                addHtml(parser.getAttributeValue("", parser.getAttributeName(i)),
+                                        true);
                             }
                             //이미지나 css
-                            if (parser.getAttributeValue("",parser.getAttributeName(i)).endsWith(".jpg") ||
-                                    parser.getAttributeValue("",parser.getAttributeName(i)).endsWith(".png") ||
-                                    parser.getAttributeValue("",parser.getAttributeName(i)).endsWith(".gif") ||
-                                    parser.getAttributeValue("",parser.getAttributeName(i)).endsWith(".css")) {
-                                createDirectory(parser.getAttributeValue("", parser.getAttributeName(i)));
-                                String filename = "/NewEpubReader/" + parser.getAttributeValue("", parser.getAttributeName(i));
-                                File srcFile = new File(oebpsFilePath + parser.getAttributeValue("", parser.getAttributeName(i)));
-                                File destFile = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + filename);
+                            if (parser.getAttributeValue("", parser.getAttributeName(i))
+                                    .endsWith(".jpg") ||
+                                    parser.getAttributeValue("", parser.getAttributeName(i))
+                                            .endsWith(".png") ||
+                                    parser.getAttributeValue("", parser.getAttributeName(i))
+                                            .endsWith(".gif") ||
+                                    parser.getAttributeValue("", parser.getAttributeName(i))
+                                            .endsWith(".css")) {
+                                createDirectory(
+                                        parser.getAttributeValue("", parser.getAttributeName(i)));
+                                String filename = "/NewEpubReader/" + parser.getAttributeValue("",
+                                        parser.getAttributeName(i));
+                                File srcFile = new File(oebpsFilePath + parser.getAttributeValue("",
+                                        parser.getAttributeName(i)));
+                                File destFile = new File(
+                                        Environment.getExternalStorageDirectory().getAbsolutePath()
+                                                + filename);
                                 try {
                                     copyFile(srcFile, destFile);
                                 } catch (Exception e) {
                                     e.printStackTrace();
                                 }
-                                fullHtml = fullHtml.replaceAll("href=\"" + parser.getAttributeValue("", parser.getAttributeName(i)) + "\"", "href=\"file://" + Environment.getExternalStorageDirectory().getAbsolutePath() + filename + "\"");
-                                fullHtml = fullHtml.replaceAll("href=\"../" + parser.getAttributeValue("", parser.getAttributeName(i)) + "\"", "href=\"file://" + Environment.getExternalStorageDirectory().getAbsolutePath() + filename + "\"");
-                                fullHtml = fullHtml.replaceAll("src=\"" + parser.getAttributeValue("", parser.getAttributeName(i)) + "\"", "src=\"file://" + Environment.getExternalStorageDirectory().getAbsolutePath() + filename + "\"");
-                                fullHtml = fullHtml.replaceAll("src=\"../" + parser.getAttributeValue("", parser.getAttributeName(i)) + "\"", "src=\"file://" + Environment.getExternalStorageDirectory().getAbsolutePath() + filename + "\"");
+                                fullHtml = fullHtml.replaceAll(
+                                        "href=\"" + parser.getAttributeValue("",
+                                                parser.getAttributeName(i)) + "\"",
+                                        "href=\"file://" + Environment.getExternalStorageDirectory()
+                                                .getAbsolutePath() + filename + "\"");
+                                fullHtml = fullHtml.replaceAll(
+                                        "href=\"../" + parser.getAttributeValue("",
+                                                parser.getAttributeName(i)) + "\"",
+                                        "href=\"file://" + Environment.getExternalStorageDirectory()
+                                                .getAbsolutePath() + filename + "\"");
+                                fullHtml = fullHtml.replaceAll(
+                                        "src=\"" + parser.getAttributeValue("",
+                                                parser.getAttributeName(i)) + "\"",
+                                        "src=\"file://" + Environment.getExternalStorageDirectory()
+                                                .getAbsolutePath() + filename + "\"");
+                                fullHtml = fullHtml.replaceAll(
+                                        "src=\"../" + parser.getAttributeValue("",
+                                                parser.getAttributeName(i)) + "\"",
+                                        "src=\"file://" + Environment.getExternalStorageDirectory()
+                                                .getAbsolutePath() + filename + "\"");
                             }
                         }
                         break;
@@ -204,7 +233,7 @@ public class ReaderViewActivity extends RootActivity {
                 }
                 eventType = parser.next();
             }
-        }catch(Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -213,11 +242,12 @@ public class ReaderViewActivity extends RootActivity {
 
     // 링크에 폴더를 포함하는 경우 처리
     private void createDirectory(String path) {
-        Log.e("ReaderViewActivity","path => " + path);
-        String currentPath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/NewEpubReader";
+        Log.e("ReaderViewActivity", "path => " + path);
+        String currentPath =
+                Environment.getExternalStorageDirectory().getAbsolutePath() + "/NewEpubReader";
         if (path.contains("/")) {
             String str[] = path.split("/");
-            for (int i = 0;i<str.length-1;i++) { // 마지막은 파일이므로 -1
+            for (int i = 0; i < str.length - 1; i++) { // 마지막은 파일이므로 -1
                 currentPath = currentPath + "/" + str[i];
                 File tempFile = new File(currentPath);
                 if (!tempFile.exists()) {
@@ -262,14 +292,14 @@ public class ReaderViewActivity extends RootActivity {
 
                 int i;
                 while ((i = fileInputStream.read(b)) != -1) {
-                    buffer.append(new String(b,0,i));
+                    buffer.append(new String(b, 0, i));
                 }
                 if (cover) {
-                    fullHtml = buffer.toString()+fullHtml;
+                    fullHtml = buffer.toString() + fullHtml;
                 } else {
                     fullHtml = fullHtml + buffer.toString();
                 }
-            } catch(Exception e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }

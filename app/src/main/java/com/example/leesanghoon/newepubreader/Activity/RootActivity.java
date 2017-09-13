@@ -11,6 +11,7 @@ public class RootActivity extends Activity {
 
     /**
      * 시간이 걸릴때 progressBar
+     *
      * @param context
      */
     protected void showProgress(Context context, String msg) {

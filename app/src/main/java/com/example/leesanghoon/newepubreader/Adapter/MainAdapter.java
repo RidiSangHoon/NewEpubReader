@@ -14,7 +14,7 @@ import com.example.leesanghoon.newepubreader.R;
 
 import java.util.List;
 
-public class MainAdapter extends RecyclerView.Adapter<MainAdapter.ViewHolder>{
+public class MainAdapter extends RecyclerView.Adapter<MainAdapter.ViewHolder> {
 
     private List<BookItem> bookList;
 
@@ -24,7 +24,8 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.ViewHolder>{
 
     @Override
     public MainAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.row_booklist, parent, false);
+        View view = LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.row_booklist, parent, false);
         return new ViewHolder(view);
     }
 

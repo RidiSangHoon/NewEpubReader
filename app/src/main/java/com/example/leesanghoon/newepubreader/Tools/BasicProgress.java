@@ -32,7 +32,9 @@ public class BasicProgress extends Dialog {
             final BasicProgress dialog = new BasicProgress(mContext, R.style.DialogStyle);
             LayoutInflater inflater = LayoutInflater.from(mContext);
             View layout = inflater.inflate(R.layout.view_base_progress, null);
-            dialog.addContentView(layout, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            dialog.addContentView(layout,
+                    new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT));
             return dialog;
         }
     }

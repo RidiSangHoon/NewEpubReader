@@ -22,6 +22,7 @@ public class BookItem implements Parcelable {
         public BookItem createFromParcel(Parcel in) {
             return new BookItem(in);
         }
+
         public BookItem[] newArray(int size) {
             return new BookItem[size];
         }

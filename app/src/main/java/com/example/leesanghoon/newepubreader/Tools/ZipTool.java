@@ -25,12 +25,12 @@ public class ZipTool {
             byte[] buffer = new byte[1024];
             int count;
 
-            path = path.substring(0, path.length()-6);
+            path = path.substring(0, path.length() - 6);
 
             while ((ze = zis.getNextEntry()) != null) {
                 filename = ze.getName();
 
-                Log.e("ZipTool","ze.getName() => " + ze.getName());
+                Log.e("ZipTool", "ze.getName() => " + ze.getName());
 
                 if (ze.isDirectory()) {
                     File fmd = new File(path, filename);
@@ -45,7 +45,7 @@ public class ZipTool {
                     fmd_1.mkdirs();
                 }
 
-                FileOutputStream fout = new FileOutputStream(path +  "/"  + filename);
+                FileOutputStream fout = new FileOutputStream(path + "/" + filename);
 
                 while ((count = zis.read(buffer)) != -1) {
                     fout.write(buffer, 0, count);
