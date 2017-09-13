@@ -18,7 +18,7 @@ public class BookItem implements Parcelable {
         this.path = in.readString();
     }
 
-    public static final Parcelable.Creator<BookItem> CREATOR = new Parcelable.Creator<BookItem>(){
+    public static final Parcelable.Creator<BookItem> CREATOR = new Parcelable.Creator<BookItem>() {
         public BookItem createFromParcel(Parcel in) {
             return new BookItem(in);
         }

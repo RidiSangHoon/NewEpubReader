@@ -15,12 +15,8 @@ public class BasicProgress extends Dialog {
         super(context, theme);
     }
 
-    public BasicProgress(Context context) {
-        super(context);
-    }
-
     public void setMsg(String msg) {
-        TextView progressText = (TextView) findViewById(R.id.progress_text);
+        TextView progressText = findViewById(R.id.progress_text);
         progressText.setText(msg);
     }
 
@@ -40,5 +36,4 @@ public class BasicProgress extends Dialog {
             return dialog;
         }
     }
-
 }

@@ -24,7 +24,7 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.ViewHolder>{
 
     @Override
     public MainAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.row_booklist,parent,false);
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.row_booklist, parent, false);
         return new ViewHolder(view);
     }
 
@@ -32,13 +32,13 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.ViewHolder>{
     public void onBindViewHolder(MainAdapter.ViewHolder holder, int position) {
         final BookItem book = bookList.get(position);
         holder.nameTv.setText(book.name);
-        holder.pathTv.setText("Path => "+book.path);
+        holder.pathTv.setText("Path => " + book.path);
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Context c = view.getContext();
-                Intent intent = new Intent(c,ReaderViewActivity.class);
-                intent.putExtra("bookItem",book);
+                Intent intent = new Intent(c, ReaderViewActivity.class);
+                intent.putExtra("bookItem", book);
                 c.startActivity(intent);
             }
         });
@@ -56,8 +56,8 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.ViewHolder>{
         public ViewHolder(View itemView) {
             super(itemView);
 
-            nameTv = (TextView)itemView.findViewById(R.id.book_name);
-            pathTv = (TextView)itemView.findViewById(R.id.book_path);
+            nameTv = itemView.findViewById(R.id.book_name);
+            pathTv = itemView.findViewById(R.id.book_path);
         }
     }
 }

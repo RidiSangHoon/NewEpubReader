@@ -25,14 +25,13 @@ public class MainActivity extends RootActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        showProgress(MainActivity.this,"폰에서 모든 ePub파일들을 가져오고 있습니다.\n잠시만 기다려주세요.");
+        showProgress(MainActivity.this, "폰에서 모든 ePub파일들을 가져오고 있습니다.\n잠시만 기다려주세요.");
 
-        bookList = new ArrayList<BookItem>();
-        bookListView = (RecyclerView)findViewById(R.id.book_list_view);
+        bookList = new ArrayList<>();
+        bookListView = findViewById(R.id.book_list_view);
 
         BackThread thread = new BackThread();
         thread.start();
-
     }
 
     /**
@@ -53,16 +52,16 @@ public class MainActivity extends RootActivity {
         }
 
         for (File file : list) {
-            if (file.isDirectory()){
+            if (file.isDirectory()) {
                 searchAllFiles(file);
             }
             if (file.getName().endsWith(".epub")) {
-                bookList.add(new BookItem(file.getName(),file.getAbsolutePath()));
-                Log.e("MainActivity",file.getName());
+                bookList.add(new BookItem(file.getName(), file.getAbsolutePath()));
+                Log.e("MainActivity", file.getName());
             }
         }
 
-        if(fileList.getName().equals(Environment.getExternalStorageDirectory().getName())){
+        if (fileList.getName().equals(Environment.getExternalStorageDirectory().getName())) {
             new Handler(Looper.getMainLooper()).post(new Runnable() {
                 @Override
                 public void run() {

@@ -36,8 +36,9 @@ public class RootActivity extends Activity {
         try {
             if (this != null) {
                 if (basicProgress != null) {
-                    if (basicProgress.isShowing())
+                    if (basicProgress.isShowing()) {
                         basicProgress.dismiss();
+                    }
                 }
             }
         } catch (Exception e) {
