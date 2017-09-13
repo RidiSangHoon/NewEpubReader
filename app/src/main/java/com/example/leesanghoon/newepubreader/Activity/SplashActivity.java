@@ -12,18 +12,12 @@ import com.gun0912.tedpermission.TedPermission;
 
 import java.util.ArrayList;
 
-/**
- * Created by leesanghoon on 2017. 9. 6..
- */
-
 public class SplashActivity extends Activity {
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
-
 
         PermissionListener permissionListener = new PermissionListener() {
             @Override
@@ -45,7 +39,6 @@ public class SplashActivity extends Activity {
                 .setDeniedMessage("권한을 설정하지 않으시면 서비스를 이용하실 수 없습니다")
                 .setPermissions(android.Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 .check();
+
     }
-
-
 }

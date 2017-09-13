@@ -3,9 +3,6 @@ package com.example.leesanghoon.newepubreader.Model;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-/**
- * Created by leesanghoon on 2017. 9. 6..
- */
 
 public class BookItem implements Parcelable {
     public String name;

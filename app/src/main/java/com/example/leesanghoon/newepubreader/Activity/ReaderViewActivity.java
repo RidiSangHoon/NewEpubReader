@@ -24,20 +24,16 @@ import java.io.InputStreamReader;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 
-/**
- * Created by leesanghoon on 2017. 9. 7..
- */
-
 public class ReaderViewActivity extends RootActivity {
 
-    BookItem currentBook;
-    TextView titleText;
-    ImageView backBtn;
-    WebView webView;
-    String contentLoc,folderPath,oebpsFilePath,opfFilePath,ncxFilePath,fullHtml = "";
+    private BookItem currentBook;
+    private TextView titleText;
+    private ImageView backBtn;
+    private WebView webView;
+    private String contentLoc,folderPath,oebpsFilePath,opfFilePath,ncxFilePath,fullHtml = "";
 
     // 목차대로 저장하는 파일 리스트
-    ArrayList<String> fileSeqList = new ArrayList<>();
+    private ArrayList<String> fileSeqList = new ArrayList<>();
 
     //cover페이지를 찾았는지 못찾았는지
     boolean coverFlag = false;
@@ -47,9 +43,9 @@ public class ReaderViewActivity extends RootActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_readerview);
 
-        titleText = (TextView)findViewById(R.id.bookTitleTv);
-        backBtn = (ImageView)findViewById(R.id.backBtn);
-        webView = (WebView)findViewById(R.id.webView);
+        titleText = (TextView)findViewById(R.id.book_title);
+        backBtn = (ImageView)findViewById(R.id.back_button);
+        webView = (WebView)findViewById(R.id.reader_view);
 
         webView.getSettings().setJavaScriptEnabled(true);
 
@@ -75,9 +71,7 @@ public class ReaderViewActivity extends RootActivity {
             }
         });
 
-        if(ZipTool.unzip(currentBook.path+"/")) {
-            Log.e("ReaderViewActivity","unzip Success");
-        } else {
+        if(!ZipTool.unzip(currentBook.path+"/")) {
             Log.e("ReaderViewActivity","unzip Fail");
             Toast.makeText(ReaderViewActivity.this,"ePub 파일 열기에 실패하였습니다.",Toast.LENGTH_SHORT).show();
             finish();
@@ -88,9 +82,7 @@ public class ReaderViewActivity extends RootActivity {
         folderPath = currentBook.path.substring(0,currentBook.path.length()-5);
 
         File containerXmlFile = new File(folderPath+"/META-INF/container.xml");
-        if (containerXmlFile.exists()) {
-            Log.e("ReaderViewActivity","file exists");
-        } else {
+        if (!containerXmlFile.exists()) {
             Log.e("ReaderViewActivity","file not exists");
             Toast.makeText(ReaderViewActivity.this,"ePub 파일 열기에 실패하였습니다.", Toast.LENGTH_SHORT).show();
             finish();
@@ -175,7 +167,6 @@ public class ReaderViewActivity extends RootActivity {
             addHtml(f,false);
         }
 
-
         try{
             FileInputStream is = new FileInputStream(opfFilePath);
 
@@ -185,7 +176,6 @@ public class ReaderViewActivity extends RootActivity {
 
             int eventType = parser.getEventType();
 
-            //커버 페이지
             while(eventType != XmlPullParser.END_DOCUMENT) {
                 switch (eventType) {
                     case XmlPullParser.START_TAG:
@@ -230,7 +220,7 @@ public class ReaderViewActivity extends RootActivity {
     }
 
     // 링크에 폴더를 포함하는 경우 처리
-    public void createDirectory(String path) {
+    private void createDirectory(String path) {
         Log.e("ReaderViewActivity","path => "+path);
         String currentPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/NewEpubReader";
         if(path.contains("/")) {
@@ -248,7 +238,7 @@ public class ReaderViewActivity extends RootActivity {
     }
 
     //파일 복사하기
-    void copyFile(File src, File dst) throws IOException {
+    private void copyFile(File src, File dst) throws IOException {
         if(!dst.getParentFile().exists()){
             dst.getParentFile().mkdirs();
         }
@@ -268,7 +258,7 @@ public class ReaderViewActivity extends RootActivity {
     }
 
     //cover페이지인지 여부에 따라 html에 추가해주는 함수
-    public void addHtml(String filename, boolean cover) {
+    private void addHtml(String filename, boolean cover) {
         File htmlFile = new File(oebpsFilePath+filename);
         if(htmlFile.exists()){
             try {

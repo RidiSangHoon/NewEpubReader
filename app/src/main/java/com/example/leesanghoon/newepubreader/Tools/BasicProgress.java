@@ -9,10 +9,6 @@ import android.widget.TextView;
 
 import com.example.leesanghoon.newepubreader.R;
 
-/**
- * Created by leesanghoon on 2017. 9. 6..
- */
-
 public class BasicProgress extends Dialog {
 
     public BasicProgress(Context context, int theme) {

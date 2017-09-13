@@ -11,10 +11,6 @@ import java.io.InputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-/**
- * Created by leesanghoon on 2017. 9. 12..
- */
-
 public class ZipTool {
 
     //압축 해제 하는 함수

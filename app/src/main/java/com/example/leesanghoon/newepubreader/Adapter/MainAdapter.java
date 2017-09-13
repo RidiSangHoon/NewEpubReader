@@ -14,10 +14,6 @@ import com.example.leesanghoon.newepubreader.R;
 
 import java.util.List;
 
-/**
- * Created by leesanghoon on 2017. 9. 6..
- */
-
 public class MainAdapter extends RecyclerView.Adapter<MainAdapter.ViewHolder>{
 
     private List<BookItem> bookList;
@@ -60,8 +56,8 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.ViewHolder>{
         public ViewHolder(View itemView) {
             super(itemView);
 
-            nameTv = (TextView)itemView.findViewById(R.id.nameTv);
-            pathTv = (TextView)itemView.findViewById(R.id.pathTv);
+            nameTv = (TextView)itemView.findViewById(R.id.book_name);
+            pathTv = (TextView)itemView.findViewById(R.id.book_path);
         }
     }
 }

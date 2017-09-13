@@ -26,6 +26,7 @@
             android:gravity="center_horizontal"
             android:textColor="#FFFFFF"
             android:textAppearance="?android:attr/textAppearanceSmall"/>
+
     </LinearLayout>
 
     <FrameLayout
@@ -39,6 +40,7 @@
             android:layout_height="match_parent"
             android:gravity="center"
             android:textAppearance="?android:attr/textAppearanceLarge" />
+
     </FrameLayout>
 
 </FrameLayout>

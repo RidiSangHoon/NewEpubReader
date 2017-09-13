@@ -5,13 +5,9 @@ import android.content.Context;
 
 import com.example.leesanghoon.newepubreader.Tools.BasicProgress;
 
-/**
- * Created by leesanghoon on 2017. 9. 6..
- */
-
 public class RootActivity extends Activity {
 
-    BasicProgress basicProgress ;
+    BasicProgress basicProgress;
 
     /**
      * 시간이 걸릴때 progressBar

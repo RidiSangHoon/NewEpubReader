@@ -17,8 +17,8 @@ import java.util.ArrayList;
 
 public class MainActivity extends RootActivity {
 
-    ArrayList<BookItem> bookList;
-    RecyclerView recyclerView;
+    private ArrayList<BookItem> bookList;
+    private RecyclerView bookListView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,7 +28,7 @@ public class MainActivity extends RootActivity {
         showProgress(MainActivity.this,"폰에서 모든 ePub파일들을 가져오고 있습니다.\n잠시만 기다려주세요.");
 
         bookList = new ArrayList<BookItem>();
-        recyclerView = (RecyclerView)findViewById(R.id.recyclerView);
+        bookListView = (RecyclerView)findViewById(R.id.book_list_view);
 
         BackThread thread = new BackThread();
         thread.start();
@@ -39,14 +39,14 @@ public class MainActivity extends RootActivity {
      * Thread를 만들어 폰에 있는 모든 epub파일을 가져온다.
      */
 
-    class BackThread extends Thread {
+    private class BackThread extends Thread {
         @Override
         public void run() {
             searchAllFiles(Environment.getExternalStorageDirectory());
         }
     }
 
-    public void searchAllFiles(File fileList) {
+    private void searchAllFiles(File fileList) {
         File[] list = fileList.listFiles();
         if (list == null) {
             return;
@@ -67,8 +67,8 @@ public class MainActivity extends RootActivity {
                 @Override
                 public void run() {
                     dismissProgress();
-                    recyclerView.setAdapter(new MainAdapter(bookList));
-                    recyclerView.setLayoutManager(new LinearLayoutManager(MainActivity.this));
+                    bookListView.setAdapter(new MainAdapter(bookList));
+                    bookListView.setLayoutManager(new LinearLayoutManager(MainActivity.this));
                 }
             });
         }
