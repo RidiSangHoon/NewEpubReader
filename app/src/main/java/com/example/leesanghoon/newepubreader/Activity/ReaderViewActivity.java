@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
 import android.view.View;
+import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -44,6 +45,7 @@ public class ReaderViewActivity extends RootActivity {
         WebView webView = findViewById(R.id.reader_view);
 
         webView.getSettings().setJavaScriptEnabled(true);
+        webView.setWebChromeClient(new WebChromeClient());
 
         BookItem currentBook = getIntent().getParcelableExtra("bookItem");
 
@@ -121,6 +123,7 @@ public class ReaderViewActivity extends RootActivity {
             oebpsFilePath = contentLoc.substring(0, contentLoc.indexOf("/"));
             oebpsFilePath = folderPath + "/" + oebpsFilePath + "/";
         }
+        Log.e("ReaderViewAcitivity", "oebpsFilePath => " + oebpsFilePath);
 
         File[] list = new File(oebpsFilePath).listFiles();
 
@@ -146,7 +149,24 @@ public class ReaderViewActivity extends RootActivity {
                 switch (eventType) {
                     case XmlPullParser.START_TAG:
                         if (parser.getName().equals("content")) {
-                            fileSeqList.add(parser.getAttributeValue("", "src"));
+                            // #으로 페이지번호를 표시하는 경우가 있음
+                            String notHtml = parser.getAttributeValue("", "src");
+                            if (notHtml.endsWith(".html") || notHtml.endsWith(".xhtml")) {
+                                if (!fileSeqList.contains(parser.getAttributeValue("", "src"))) {
+                                    fileSeqList.add(parser.getAttributeValue("", "src"));
+                                }
+                            } else {
+                                int index = 0;
+                                if (notHtml.contains(".html")) {
+                                    index = notHtml.indexOf(".html") + 5;
+                                } else if (notHtml.contains(".xhtml")) {
+                                    index = notHtml.indexOf(".xhtml") + 6;
+                                }
+                                if (!fileSeqList.contains(notHtml.substring(0, index))) {
+                                    fileSeqList.add(notHtml.substring(0, index));
+                                }
+                            }
+
                         }
                         break;
                     case XmlPullParser.END_TAG:
@@ -236,6 +256,7 @@ public class ReaderViewActivity extends RootActivity {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        Log.e("ReaderViewActivity", "fullHtml => " + fullHtml);
 
         webView.loadDataWithBaseURL("file:///android_asset/", fullHtml, "text/html", "utf-8", null);
     }
