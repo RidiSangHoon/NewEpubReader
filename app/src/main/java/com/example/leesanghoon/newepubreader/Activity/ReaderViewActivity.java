@@ -2,11 +2,14 @@ package com.example.leesanghoon.newepubreader.Activity;
 
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.util.Log;
 import android.view.View;
-import android.webkit.WebChromeClient;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -24,30 +27,84 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class ReaderViewActivity extends RootActivity {
 
-    private String contentLoc, oebpsFilePath, opfFilePath, ncxFilePath, fullHtml = "";
+    private String contentLoc, oebpsFilePath, opfFilePath;
 
     // 목차대로 저장하는 파일 리스트
     private ArrayList<String> fileSeqList = new ArrayList<>();
-
-    //cover페이지를 찾았는지 못찾았는지
-    boolean coverFlag = false;
+    private ArrayList<String> htmlList = new ArrayList<>();
+    private LinearLayout readerView;
+    private BookItem currentBook;
+    private String folderPath;
+    private File containerXmlFile;
+    private HashMap<String, String> idHrefMap = new HashMap<>();
+    private int finishWebViewCnt = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_readerview);
 
+        init();
+        openEpub();
+        getPaths();
+        getSpine();
+
+        for (String f : fileSeqList) {
+            addHtml(f);
+        }
+
+        showProgress(ReaderViewActivity.this, "ePub 파일을 읽는 중입니다.");
+
+        BackThread thread = new BackThread();
+        thread.start();
+    }
+
+    //스레드를 만들어 다 읽어올때까지 progressBar를 띄운다.
+    private class BackThread extends Thread {
+        @Override
+        public void run() {
+            saveImgCssFile();
+            for (final String htmlItem : htmlList) {
+                Log.e("ReaderViewActivity", "htmlItem => " + htmlItem);
+                new Handler(getMainLooper()).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        WebView webView = new WebView(ReaderViewActivity.this);
+                        webView.getSettings().setJavaScriptEnabled(true);
+
+                        webView.loadDataWithBaseURL("file:///android_asset/", htmlItem, "text/html",
+                                "utf-8",
+                                null);
+                        webView.setLayoutParams(new LinearLayout.LayoutParams(
+                                FrameLayout.LayoutParams.WRAP_CONTENT,
+                                FrameLayout.LayoutParams.WRAP_CONTENT));
+                        webView.setWebViewClient(new WebViewClient() {
+                            @Override
+                            public void onPageFinished(WebView view, String url) {
+                                finishWebViewCnt++;
+                                if (finishWebViewCnt == htmlList.size()) {
+                                    // 다 읽어온 것이므로
+                                    dismissProgress();
+                                }
+                            }
+                        });
+                        readerView.addView(webView);
+                    }
+                });
+            }
+        }
+    }
+
+    private void init() {
         TextView titleText = findViewById(R.id.book_title);
         ImageView backBtn = findViewById(R.id.back_button);
-        WebView webView = findViewById(R.id.reader_view);
 
-        webView.getSettings().setJavaScriptEnabled(true);
-        webView.setWebChromeClient(new WebChromeClient());
-
-        BookItem currentBook = getIntent().getParcelableExtra("bookItem");
+        currentBook = getIntent().getParcelableExtra("bookItem");
+        readerView = findViewById(R.id.reader_view);
 
         if (currentBook == null) {
             Toast.makeText(ReaderViewActivity.this, "선택하신 책이 없습니다.", Toast.LENGTH_SHORT).show();
@@ -68,197 +125,6 @@ public class ReaderViewActivity extends RootActivity {
                 finish();
             }
         });
-
-        if (!ZipTool.unzip(currentBook.path + "/")) {
-            Log.e("ReaderViewActivity", "unzip Fail");
-            Toast.makeText(ReaderViewActivity.this, "ePub 파일 열기에 실패하였습니다.", Toast.LENGTH_SHORT)
-                    .show();
-            finish();
-            return;
-        }
-
-        //.epub 이기 때문에 -5
-        String folderPath = currentBook.path.substring(0, currentBook.path.length() - 5);
-
-        File containerXmlFile = new File(folderPath + "/META-INF/container.xml");
-        if (!containerXmlFile.exists()) {
-            Log.e("ReaderViewActivity", "file not exists");
-            Toast.makeText(ReaderViewActivity.this, "ePub 파일 열기에 실패하였습니다.", Toast.LENGTH_SHORT)
-                    .show();
-            finish();
-            return;
-        }
-
-        //container xml Parser
-
-        try {
-            FileInputStream is = new FileInputStream(containerXmlFile);
-            XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
-            XmlPullParser parser = factory.newPullParser();
-            parser.setInput(new InputStreamReader(is, "UTF-8"));
-
-            int eventType = parser.getEventType();
-
-            while (eventType != XmlPullParser.END_DOCUMENT) {
-                switch (eventType) {
-                    case XmlPullParser.START_TAG:
-                        if (parser.getName().equals("rootfile")) {
-                            contentLoc = parser.getAttributeValue("", "full-path");
-                            Log.e("ReaderViewActivity", "contentLoc=>" + contentLoc);
-                        }
-                        break;
-                    case XmlPullParser.END_TAG:
-                        break;
-                }
-                eventType = parser.next();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        //oebps폴더 파일위치
-        if (!contentLoc.contains("/")) {
-            oebpsFilePath = folderPath + "/";
-        } else {
-            oebpsFilePath = contentLoc.substring(0, contentLoc.indexOf("/"));
-            oebpsFilePath = folderPath + "/" + oebpsFilePath + "/";
-        }
-        Log.e("ReaderViewAcitivity", "oebpsFilePath => " + oebpsFilePath);
-
-        File[] list = new File(oebpsFilePath).listFiles();
-
-        for (File listItem : list) {
-            if (listItem.getName().endsWith(".opf")) {
-                opfFilePath = listItem.getAbsolutePath();
-            }
-            if (listItem.getName().endsWith(".ncx")) {
-                ncxFilePath = listItem.getAbsolutePath();
-            }
-        }
-
-        //ncx File Parser
-        try {
-            FileInputStream is = new FileInputStream(ncxFilePath);
-            XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
-            XmlPullParser parser = factory.newPullParser();
-            parser.setInput(new InputStreamReader(is, "UTF-8"));
-
-            int eventType = parser.getEventType();
-
-            while (eventType != XmlPullParser.END_DOCUMENT) {
-                switch (eventType) {
-                    case XmlPullParser.START_TAG:
-                        if (parser.getName().equals("content")) {
-                            // #으로 페이지번호를 표시하는 경우가 있음
-                            String notHtml = parser.getAttributeValue("", "src");
-                            if (notHtml.endsWith(".html") || notHtml.endsWith(".xhtml")) {
-                                if (!fileSeqList.contains(parser.getAttributeValue("", "src"))) {
-                                    fileSeqList.add(parser.getAttributeValue("", "src"));
-                                }
-                            } else {
-                                int index = 0;
-                                if (notHtml.contains(".html")) {
-                                    index = notHtml.indexOf(".html") + 5;
-                                } else if (notHtml.contains(".xhtml")) {
-                                    index = notHtml.indexOf(".xhtml") + 6;
-                                }
-                                if (!fileSeqList.contains(notHtml.substring(0, index))) {
-                                    fileSeqList.add(notHtml.substring(0, index));
-                                }
-                            }
-
-                        }
-                        break;
-                    case XmlPullParser.END_TAG:
-                        break;
-                }
-                eventType = parser.next();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        for (String f : fileSeqList) {
-            Log.e("ReaderViewActivity", "file list => " + f);
-            addHtml(f, false);
-        }
-
-        try {
-            FileInputStream is = new FileInputStream(opfFilePath);
-            XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
-            XmlPullParser parser = factory.newPullParser();
-            parser.setInput(new InputStreamReader(is, "UTF-8"));
-
-            int eventType = parser.getEventType();
-
-            while (eventType != XmlPullParser.END_DOCUMENT) {
-                switch (eventType) {
-                    case XmlPullParser.START_TAG:
-                        for (int i = 0; i < parser.getAttributeCount(); i++) {
-                            //커버 페이지
-                            if (parser.getAttributeValue("", parser.getAttributeName(i))
-                                    .endsWith("cover.xhtml") && !coverFlag) {
-                                coverFlag = true;
-                                addHtml(parser.getAttributeValue("", parser.getAttributeName(i)),
-                                        true);
-                            }
-                            //이미지나 css
-                            if (parser.getAttributeValue("", parser.getAttributeName(i))
-                                    .endsWith(".jpg") ||
-                                    parser.getAttributeValue("", parser.getAttributeName(i))
-                                            .endsWith(".png") ||
-                                    parser.getAttributeValue("", parser.getAttributeName(i))
-                                            .endsWith(".gif") ||
-                                    parser.getAttributeValue("", parser.getAttributeName(i))
-                                            .endsWith(".css")) {
-                                createDirectory(
-                                        parser.getAttributeValue("", parser.getAttributeName(i)));
-                                String filename = "/NewEpubReader/" + parser.getAttributeValue("",
-                                        parser.getAttributeName(i));
-                                File srcFile = new File(oebpsFilePath + parser.getAttributeValue("",
-                                        parser.getAttributeName(i)));
-                                File destFile = new File(
-                                        Environment.getExternalStorageDirectory().getAbsolutePath()
-                                                + filename);
-                                try {
-                                    copyFile(srcFile, destFile);
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                }
-                                fullHtml = fullHtml.replaceAll(
-                                        "href=\"" + parser.getAttributeValue("",
-                                                parser.getAttributeName(i)) + "\"",
-                                        "href=\"file://" + Environment.getExternalStorageDirectory()
-                                                .getAbsolutePath() + filename + "\"");
-                                fullHtml = fullHtml.replaceAll(
-                                        "href=\"../" + parser.getAttributeValue("",
-                                                parser.getAttributeName(i)) + "\"",
-                                        "href=\"file://" + Environment.getExternalStorageDirectory()
-                                                .getAbsolutePath() + filename + "\"");
-                                fullHtml = fullHtml.replaceAll(
-                                        "src=\"" + parser.getAttributeValue("",
-                                                parser.getAttributeName(i)) + "\"",
-                                        "src=\"file://" + Environment.getExternalStorageDirectory()
-                                                .getAbsolutePath() + filename + "\"");
-                                fullHtml = fullHtml.replaceAll(
-                                        "src=\"../" + parser.getAttributeValue("",
-                                                parser.getAttributeName(i)) + "\"",
-                                        "src=\"file://" + Environment.getExternalStorageDirectory()
-                                                .getAbsolutePath() + filename + "\"");
-                            }
-                        }
-                        break;
-                    case XmlPullParser.END_TAG:
-                        break;
-                }
-                eventType = parser.next();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        Log.e("ReaderViewActivity", "fullHtml => " + fullHtml);
-
-        webView.loadDataWithBaseURL("file:///android_asset/", fullHtml, "text/html", "utf-8", null);
     }
 
     // 링크에 폴더를 포함하는 경우 처리
@@ -303,8 +169,9 @@ public class ReaderViewActivity extends RootActivity {
     }
 
     //cover페이지인지 여부에 따라 html에 추가해주는 함수
-    private void addHtml(String filename, boolean cover) {
+    private void addHtml(String filename) {
         File htmlFile = new File(oebpsFilePath + filename);
+        String fullHtml = "";
         if (htmlFile.exists()) {
             try {
                 FileInputStream fileInputStream = new FileInputStream(htmlFile);
@@ -315,14 +182,200 @@ public class ReaderViewActivity extends RootActivity {
                 while ((i = fileInputStream.read(b)) != -1) {
                     buffer.append(new String(b, 0, i));
                 }
-                if (cover) {
-                    fullHtml = buffer.toString() + fullHtml;
-                } else {
-                    fullHtml = fullHtml + buffer.toString();
-                }
+                fullHtml = fullHtml + buffer.toString();
             } catch (Exception e) {
                 e.printStackTrace();
             }
+        }
+        htmlList.add(fullHtml);
+    }
+
+    // epub 파일 열기
+    private void openEpub() {
+        if (!ZipTool.unzip(currentBook.path + "/")) {
+            Log.e("ReaderViewActivity", "unzip Fail");
+            Toast.makeText(ReaderViewActivity.this, "ePub 파일 열기에 실패하였습니다.", Toast.LENGTH_SHORT)
+                    .show();
+            finish();
+            return;
+        }
+
+        //.epub 이기 때문에 -5
+        folderPath = currentBook.path.substring(0, currentBook.path.length() - 5);
+
+        containerXmlFile = new File(folderPath + "/META-INF/container.xml");
+        if (!containerXmlFile.exists()) {
+            Log.e("ReaderViewActivity", "file not exists");
+            Toast.makeText(ReaderViewActivity.this, "ePub 파일 열기에 실패하였습니다.", Toast.LENGTH_SHORT)
+                    .show();
+            finish();
+            return;
+        }
+    }
+
+    //oebsFilePath, opfFilePath 구하기
+    private void getPaths() {
+        try {
+            FileInputStream is = new FileInputStream(containerXmlFile);
+            XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
+            XmlPullParser parser = factory.newPullParser();
+            parser.setInput(new InputStreamReader(is, "UTF-8"));
+
+            int eventType = parser.getEventType();
+
+            while (eventType != XmlPullParser.END_DOCUMENT) {
+                switch (eventType) {
+                    case XmlPullParser.START_TAG:
+                        if (parser.getName().equals("rootfile")) {
+                            contentLoc = parser.getAttributeValue("", "full-path");
+                            Log.e("ReaderViewActivity", "contentLoc=>" + contentLoc);
+                        }
+                        break;
+                    case XmlPullParser.END_TAG:
+                        break;
+                }
+                eventType = parser.next();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        //oebps폴더 파일위치
+        if (!contentLoc.contains("/")) {
+            oebpsFilePath = folderPath + "/";
+        } else {
+            oebpsFilePath = contentLoc.substring(0, contentLoc.indexOf("/"));
+            oebpsFilePath = folderPath + "/" + oebpsFilePath + "/";
+        }
+        Log.e("ReaderViewAcitivity", "oebpsFilePath => " + oebpsFilePath);
+
+        File[] list = new File(oebpsFilePath).listFiles();
+
+        for (File listItem : list) {
+            if (listItem.getName().endsWith(".opf")) {
+                opfFilePath = listItem.getAbsolutePath();
+            }
+        }
+    }
+
+    // Img 나 Css File 저장하기
+    private void saveImgCssFile() {
+        try {
+            FileInputStream is = new FileInputStream(opfFilePath);
+            XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
+            XmlPullParser parser = factory.newPullParser();
+            parser.setInput(new InputStreamReader(is, "UTF-8"));
+
+            int eventType = parser.getEventType();
+
+            while (eventType != XmlPullParser.END_DOCUMENT) {
+                switch (eventType) {
+                    case XmlPullParser.START_TAG:
+                        for (int i = 0; i < parser.getAttributeCount(); i++) {
+                            //이미지나 css
+                            if (parser.getAttributeValue("", parser.getAttributeName(i))
+                                    .endsWith(".jpg") ||
+                                    parser.getAttributeValue("", parser.getAttributeName(i))
+                                            .endsWith(".png") ||
+                                    parser.getAttributeValue("", parser.getAttributeName(i))
+                                            .endsWith(".gif") ||
+                                    parser.getAttributeValue("", parser.getAttributeName(i))
+                                            .endsWith(".css")) {
+                                createDirectory(
+                                        parser.getAttributeValue("", parser.getAttributeName(i)));
+                                String filename = "/NewEpubReader/" + parser.getAttributeValue("",
+                                        parser.getAttributeName(i));
+                                File srcFile = new File(oebpsFilePath + parser.getAttributeValue("",
+                                        parser.getAttributeName(i)));
+                                File destFile = new File(
+                                        Environment.getExternalStorageDirectory().getAbsolutePath()
+                                                + filename);
+                                try {
+                                    copyFile(srcFile, destFile);
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                                for (String htmlItem : htmlList) {
+                                    int index = htmlList.indexOf(htmlItem);
+                                    htmlItem = htmlItem.replaceAll(
+                                            "href=\"" + parser.getAttributeValue("",
+                                                    parser.getAttributeName(i)) + "\"",
+                                            "href=\"file://"
+                                                    + Environment.getExternalStorageDirectory()
+                                                    .getAbsolutePath() + filename + "\"");
+                                    htmlItem = htmlItem.replaceAll(
+                                            "href=\"../" + parser.getAttributeValue("",
+                                                    parser.getAttributeName(i)) + "\"",
+                                            "href=\"file://"
+                                                    + Environment.getExternalStorageDirectory()
+                                                    .getAbsolutePath() + filename + "\"");
+                                    htmlItem = htmlItem.replaceAll(
+                                            "src=\"" + parser.getAttributeValue("",
+                                                    parser.getAttributeName(i)) + "\"",
+                                            "src=\"file://"
+                                                    + Environment.getExternalStorageDirectory()
+                                                    .getAbsolutePath() + filename + "\"");
+                                    htmlItem = htmlItem.replaceAll(
+                                            "src=\"../" + parser.getAttributeValue("",
+                                                    parser.getAttributeName(i)) + "\"",
+                                            "src=\"file://"
+                                                    + Environment.getExternalStorageDirectory()
+                                                    .getAbsolutePath() + filename + "\"");
+                                    htmlList.set(index, htmlItem);
+                                }
+                            }
+                        }
+                        break;
+                    case XmlPullParser.END_TAG:
+                        break;
+                }
+                eventType = parser.next();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    //Spine을 가져와서 순서대로 fileSeqList에 추가해주는 함수
+    private void getSpine() {
+        try {
+            FileInputStream is = new FileInputStream(opfFilePath);
+            XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
+            XmlPullParser parser = factory.newPullParser();
+            parser.setInput(new InputStreamReader(is, "UTF-8"));
+
+            int eventType = parser.getEventType();
+            int spineFlag = 0, itemFlag = 0;
+
+            while (eventType != XmlPullParser.END_DOCUMENT) {
+                switch (eventType) {
+                    case XmlPullParser.START_TAG:
+                        if (parser.getName().equalsIgnoreCase("spine") || spineFlag == 1) {
+                            spineFlag = 1;
+                            Log.e("ReaderViewActivity",
+                                    "spine => " + parser.getAttributeValue("", "idref"));
+                            fileSeqList.add(idHrefMap.get(parser.getAttributeValue("", "idref")));
+                        }
+                        if (parser.getName().equalsIgnoreCase("item") || itemFlag == 1) {
+                            itemFlag = 1;
+                            idHrefMap.put(parser.getAttributeValue("", "id"),
+                                    parser.getAttributeValue("", "href"));
+                        }
+                        break;
+                    case XmlPullParser.END_TAG:
+                        Log.e("ReaderViewActivity", "End Tag => " + parser.getName());
+                        if (parser.getName().equalsIgnoreCase("spine")) {
+                            spineFlag = 0;
+                        }
+                        if (parser.getName().equalsIgnoreCase("item")) {
+                            itemFlag = 0;
+                        }
+                        break;
+                }
+                eventType = parser.next();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }

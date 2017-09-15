@@ -2,8 +2,6 @@ package com.example.leesanghoon.newepubreader.Activity;
 
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Handler;
-import android.os.Looper;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -25,7 +23,7 @@ public class MainActivity extends RootActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        showProgress(MainActivity.this, "폰에서 모든 ePub파일들을 가져오고 있습니다.\n잠시만 기다려주세요.");
+        showProgress(MainActivity.this, "다운로드 폴더에서 모든 ePub파일들을 가져오고 있습니다.\n잠시만 기다려주세요.");
 
         bookList = new ArrayList<>();
         bookListView = findViewById(R.id.book_list_view);
@@ -41,7 +39,8 @@ public class MainActivity extends RootActivity {
     private class BackThread extends Thread {
         @Override
         public void run() {
-            searchAllFiles(Environment.getExternalStorageDirectory());
+            searchAllFiles(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS));
         }
     }
 
@@ -52,24 +51,13 @@ public class MainActivity extends RootActivity {
         }
 
         for (File file : list) {
-            if (file.isDirectory()) {
-                searchAllFiles(file);
-            }
             if (file.getName().endsWith(".epub")) {
                 bookList.add(new BookItem(file.getName(), file.getAbsolutePath()));
                 Log.e("MainActivity", file.getName());
             }
         }
-
-        if (fileList.getName().equals(Environment.getExternalStorageDirectory().getName())) {
-            new Handler(Looper.getMainLooper()).post(new Runnable() {
-                @Override
-                public void run() {
-                    dismissProgress();
-                    bookListView.setAdapter(new MainAdapter(bookList));
-                    bookListView.setLayoutManager(new LinearLayoutManager(MainActivity.this));
-                }
-            });
-        }
+        dismissProgress();
+        bookListView.setAdapter(new MainAdapter(bookList));
+        bookListView.setLayoutManager(new LinearLayoutManager(MainActivity.this));
     }
 }
