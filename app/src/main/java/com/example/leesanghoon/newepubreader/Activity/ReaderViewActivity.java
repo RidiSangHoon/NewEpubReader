@@ -1,20 +1,25 @@
 package com.example.leesanghoon.newepubreader.Activity;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.leesanghoon.newepubreader.Model.BookItem;
 import com.example.leesanghoon.newepubreader.R;
+import com.example.leesanghoon.newepubreader.Tools.JSProcessChromeClient;
 import com.example.leesanghoon.newepubreader.Tools.ZipTool;
 
 import org.xmlpull.v1.XmlPullParser;
@@ -38,10 +43,12 @@ public class ReaderViewActivity extends RootActivity {
     private ArrayList<String> htmlList = new ArrayList<>();
     private LinearLayout readerView;
     private BookItem currentBook;
-    private String folderPath;
+    private String folderPath,dirPath="";
     private File containerXmlFile;
     private HashMap<String, String> idHrefMap = new HashMap<>();
     private int finishWebViewCnt = 0;
+    private ScrollView scrollView;
+    private WebView[] webViews;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,6 +63,8 @@ public class ReaderViewActivity extends RootActivity {
         for (String f : fileSeqList) {
             addHtml(f);
         }
+        Log.e("ReaderViewActivity","oebps Path => "+oebpsFilePath);
+        Log.e("ReaderViewActivity","html List size => "+htmlList.size());
 
         showProgress(ReaderViewActivity.this, "ePub 파일을 읽는 중입니다.");
 
@@ -68,12 +77,14 @@ public class ReaderViewActivity extends RootActivity {
         @Override
         public void run() {
             saveImgCssFile();
+            webViews = new WebView[htmlList.size()];
             for (final String htmlItem : htmlList) {
-                Log.e("ReaderViewActivity", "htmlItem => " + htmlItem);
                 new Handler(getMainLooper()).post(new Runnable() {
                     @Override
                     public void run() {
-                        WebView webView = new WebView(ReaderViewActivity.this);
+                        final WebView webView = new WebView(ReaderViewActivity.this);
+                        final JSProcessChromeClient jsProcessChromeClient = new JSProcessChromeClient();
+
                         webView.getSettings().setJavaScriptEnabled(true);
 
                         webView.loadDataWithBaseURL("file:///android_asset/", htmlItem, "text/html",
@@ -85,11 +96,52 @@ public class ReaderViewActivity extends RootActivity {
                         webView.setWebViewClient(new WebViewClient() {
                             @Override
                             public void onPageFinished(WebView view, String url) {
-                                finishWebViewCnt++;
+                                if(finishWebViewCnt < htmlList.size()) {
+                                    webViews[finishWebViewCnt++] = webView;
+                                }
                                 if (finishWebViewCnt == htmlList.size()) {
                                     // 다 읽어온 것이므로
                                     dismissProgress();
                                 }
+                            }
+
+                            @Override
+                            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                                Log.e("ReaderViewActivity","should override url loading");
+                                final String url = request.getUrl().toString();
+                                int scrollHeight = 0;
+                                if(url.startsWith("http")){
+                                    //외부 웹 실행
+                                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                                    startActivity(intent);
+                                } else {
+                                    //내부 링크 이동 시도 (목차 기능)
+                                    Log.e("ReaderViewActivity","request url => "+url);
+                                    int sharpIndex = url.indexOf("#");
+                                    if(sharpIndex == -1) {
+                                        for(int i=0;i<fileSeqList.size();i++){
+                                            if(("file://"+dirPath+"/"+fileSeqList.get(i)).equals(url)){
+                                                scrollHeight = (int)webViews[i].getY();
+                                                break;
+                                            }
+                                        }
+                                        Log.e("ReaderViewActivity","scroll Height => "+scrollHeight);
+                                        scrollView.smoothScrollTo(0,scrollHeight);
+                                    } else {
+                                        final String link = url.substring(sharpIndex, url.length());
+                                        final String exceptLink = url.substring(0, sharpIndex);
+                                        int i;
+                                        for(i=0;i<fileSeqList.size();i++){
+                                            if(("file://"+dirPath+"/"+fileSeqList.get(i)).equals(exceptLink)){
+                                                scrollHeight = (int)webViews[i].getY();
+                                                break;
+                                            }
+                                        }
+                                        scrollView.smoothScrollTo(0,scrollHeight);
+                                    }
+
+                                }
+                                return true;
                             }
                         });
                         readerView.addView(webView);
@@ -105,6 +157,7 @@ public class ReaderViewActivity extends RootActivity {
 
         currentBook = getIntent().getParcelableExtra("bookItem");
         readerView = findViewById(R.id.reader_view);
+        scrollView = findViewById(R.id.scroll_view);
 
         if (currentBook == null) {
             Toast.makeText(ReaderViewActivity.this, "선택하신 책이 없습니다.", Toast.LENGTH_SHORT).show();
@@ -112,7 +165,7 @@ public class ReaderViewActivity extends RootActivity {
         }
 
         //NewEpubReader 폴더 만들기
-        String dirPath = Environment.getExternalStorageDirectory().toString() + "/NewEpubReader";
+        dirPath = Environment.getExternalStorageDirectory().toString() + "/NewEpubReader";
         File tempFile = new File(dirPath);
         if (!tempFile.exists()) {
             tempFile.mkdirs();
@@ -168,8 +221,9 @@ public class ReaderViewActivity extends RootActivity {
         }
     }
 
-    //cover페이지인지 여부에 따라 html에 추가해주는 함수
+    //html에 추가해주는 함수
     private void addHtml(String filename) {
+        Log.e("ReaderViewActivity","oebpsFilepath + filename => "+oebpsFilePath+filename);
         File htmlFile = new File(oebpsFilePath + filename);
         String fullHtml = "";
         if (htmlFile.exists()) {
@@ -280,7 +334,10 @@ public class ReaderViewActivity extends RootActivity {
                                     parser.getAttributeValue("", parser.getAttributeName(i))
                                             .endsWith(".gif") ||
                                     parser.getAttributeValue("", parser.getAttributeName(i))
-                                            .endsWith(".css")) {
+                                            .endsWith(".css") ||
+                                    parser.getAttributeValue("", parser.getAttributeName(i))
+                                    .endsWith(".html") ||
+                                    parser.getAttributeValue("", parser.getAttributeName(i)).endsWith(".xhtml")) {
                                 createDirectory(
                                         parser.getAttributeValue("", parser.getAttributeName(i)));
                                 String filename = "/NewEpubReader/" + parser.getAttributeValue("",
@@ -299,28 +356,28 @@ public class ReaderViewActivity extends RootActivity {
                                     int index = htmlList.indexOf(htmlItem);
                                     htmlItem = htmlItem.replaceAll(
                                             "href=\"" + parser.getAttributeValue("",
-                                                    parser.getAttributeName(i)) + "\"",
+                                                    parser.getAttributeName(i)),
                                             "href=\"file://"
                                                     + Environment.getExternalStorageDirectory()
-                                                    .getAbsolutePath() + filename + "\"");
+                                                    .getAbsolutePath() + filename );
                                     htmlItem = htmlItem.replaceAll(
                                             "href=\"../" + parser.getAttributeValue("",
-                                                    parser.getAttributeName(i)) + "\"",
+                                                    parser.getAttributeName(i)) ,
                                             "href=\"file://"
                                                     + Environment.getExternalStorageDirectory()
-                                                    .getAbsolutePath() + filename + "\"");
+                                                    .getAbsolutePath() + filename );
                                     htmlItem = htmlItem.replaceAll(
                                             "src=\"" + parser.getAttributeValue("",
-                                                    parser.getAttributeName(i)) + "\"",
+                                                    parser.getAttributeName(i)) ,
                                             "src=\"file://"
                                                     + Environment.getExternalStorageDirectory()
-                                                    .getAbsolutePath() + filename + "\"");
+                                                    .getAbsolutePath() + filename );
                                     htmlItem = htmlItem.replaceAll(
                                             "src=\"../" + parser.getAttributeValue("",
-                                                    parser.getAttributeName(i)) + "\"",
+                                                    parser.getAttributeName(i)) ,
                                             "src=\"file://"
                                                     + Environment.getExternalStorageDirectory()
-                                                    .getAbsolutePath() + filename + "\"");
+                                                    .getAbsolutePath() + filename);
                                     htmlList.set(index, htmlItem);
                                 }
                             }
@@ -354,7 +411,9 @@ public class ReaderViewActivity extends RootActivity {
                             spineFlag = 1;
                             Log.e("ReaderViewActivity",
                                     "spine => " + parser.getAttributeValue("", "idref"));
-                            fileSeqList.add(idHrefMap.get(parser.getAttributeValue("", "idref")));
+                            if(parser.getAttributeValue("","idref")!=null){
+                                fileSeqList.add(idHrefMap.get(parser.getAttributeValue("", "idref")));
+                            }
                         }
                         if (parser.getName().equalsIgnoreCase("item") || itemFlag == 1) {
                             itemFlag = 1;
