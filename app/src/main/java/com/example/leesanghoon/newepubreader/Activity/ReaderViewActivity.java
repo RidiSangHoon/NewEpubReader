@@ -19,7 +19,6 @@ import android.widget.Toast;
 
 import com.example.leesanghoon.newepubreader.Model.BookItem;
 import com.example.leesanghoon.newepubreader.R;
-import com.example.leesanghoon.newepubreader.Tools.JSProcessChromeClient;
 import com.example.leesanghoon.newepubreader.Tools.ZipTool;
 
 import org.xmlpull.v1.XmlPullParser;
@@ -43,7 +42,7 @@ public class ReaderViewActivity extends RootActivity {
     private ArrayList<String> htmlList = new ArrayList<>();
     private LinearLayout readerView;
     private BookItem currentBook;
-    private String folderPath,dirPath="";
+    private String folderPath, dirPath = "";
     private File containerXmlFile;
     private HashMap<String, String> idHrefMap = new HashMap<>();
     private int finishWebViewCnt = 0;
@@ -63,8 +62,6 @@ public class ReaderViewActivity extends RootActivity {
         for (String f : fileSeqList) {
             addHtml(f);
         }
-        Log.e("ReaderViewActivity","oebps Path => "+oebpsFilePath);
-        Log.e("ReaderViewActivity","html List size => "+htmlList.size());
 
         showProgress(ReaderViewActivity.this, "ePub 파일을 읽는 중입니다.");
 
@@ -83,7 +80,6 @@ public class ReaderViewActivity extends RootActivity {
                     @Override
                     public void run() {
                         final WebView webView = new WebView(ReaderViewActivity.this);
-                        final JSProcessChromeClient jsProcessChromeClient = new JSProcessChromeClient();
 
                         webView.getSettings().setJavaScriptEnabled(true);
 
@@ -96,7 +92,7 @@ public class ReaderViewActivity extends RootActivity {
                         webView.setWebViewClient(new WebViewClient() {
                             @Override
                             public void onPageFinished(WebView view, String url) {
-                                if(finishWebViewCnt < htmlList.size()) {
+                                if (finishWebViewCnt < htmlList.size()) {
                                     webViews[finishWebViewCnt++] = webView;
                                 }
                                 if (finishWebViewCnt == htmlList.size()) {
@@ -106,38 +102,43 @@ public class ReaderViewActivity extends RootActivity {
                             }
 
                             @Override
-                            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                                Log.e("ReaderViewActivity","should override url loading");
+                            public boolean shouldOverrideUrlLoading(WebView view,
+                                                                    WebResourceRequest request) {
+                                Log.e("ReaderViewActivity", "should override url loading");
                                 final String url = request.getUrl().toString();
                                 int scrollHeight = 0;
-                                if(url.startsWith("http")){
+                                if (url.startsWith("http")) {
                                     //외부 웹 실행
                                     Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
                                     startActivity(intent);
                                 } else {
                                     //내부 링크 이동 시도 (목차 기능)
-                                    Log.e("ReaderViewActivity","request url => "+url);
+                                    Log.e("ReaderViewActivity", "request url => " + url);
                                     int sharpIndex = url.indexOf("#");
-                                    if(sharpIndex == -1) {
-                                        for(int i=0;i<fileSeqList.size();i++){
-                                            if(("file://"+dirPath+"/"+fileSeqList.get(i)).equals(url)){
-                                                scrollHeight = (int)webViews[i].getY();
+                                    if (sharpIndex == -1) {
+                                        for (int i = 0; i < fileSeqList.size(); i++) {
+                                            if (("file://" + dirPath + "/" + fileSeqList.get(
+                                                    i)).equals(url)) {
+                                                scrollHeight = (int) webViews[i].getY();
                                                 break;
                                             }
                                         }
-                                        Log.e("ReaderViewActivity","scroll Height => "+scrollHeight);
-                                        scrollView.smoothScrollTo(0,scrollHeight);
+                                        Log.e("ReaderViewActivity",
+                                                "scroll Height => " + scrollHeight);
+                                        scrollView.smoothScrollTo(0, scrollHeight);
                                     } else {
-                                        final String link = url.substring(sharpIndex, url.length());
+                                        final String link =
+                                                url.substring(sharpIndex + 1, url.length());
                                         final String exceptLink = url.substring(0, sharpIndex);
                                         int i;
-                                        for(i=0;i<fileSeqList.size();i++){
-                                            if(("file://"+dirPath+"/"+fileSeqList.get(i)).equals(exceptLink)){
-                                                scrollHeight = (int)webViews[i].getY();
+                                        for (i = 0; i < fileSeqList.size(); i++) {
+                                            if (("file://" + dirPath + "/" + fileSeqList.get(
+                                                    i)).equals(exceptLink)) {
+                                                scrollHeight = (int) webViews[i].getY();
                                                 break;
                                             }
                                         }
-                                        scrollView.smoothScrollTo(0,scrollHeight);
+                                        scrollView.smoothScrollTo(0, scrollHeight);
                                     }
 
                                 }
@@ -182,7 +183,6 @@ public class ReaderViewActivity extends RootActivity {
 
     // 링크에 폴더를 포함하는 경우 처리
     private void createDirectory(String path) {
-        Log.e("ReaderViewActivity", "path => " + path);
         String currentPath =
                 Environment.getExternalStorageDirectory().getAbsolutePath() + "/NewEpubReader";
         if (path.contains("/")) {
@@ -223,7 +223,6 @@ public class ReaderViewActivity extends RootActivity {
 
     //html에 추가해주는 함수
     private void addHtml(String filename) {
-        Log.e("ReaderViewActivity","oebpsFilepath + filename => "+oebpsFilePath+filename);
         File htmlFile = new File(oebpsFilePath + filename);
         String fullHtml = "";
         if (htmlFile.exists()) {
@@ -282,7 +281,6 @@ public class ReaderViewActivity extends RootActivity {
                     case XmlPullParser.START_TAG:
                         if (parser.getName().equals("rootfile")) {
                             contentLoc = parser.getAttributeValue("", "full-path");
-                            Log.e("ReaderViewActivity", "contentLoc=>" + contentLoc);
                         }
                         break;
                     case XmlPullParser.END_TAG:
@@ -336,8 +334,9 @@ public class ReaderViewActivity extends RootActivity {
                                     parser.getAttributeValue("", parser.getAttributeName(i))
                                             .endsWith(".css") ||
                                     parser.getAttributeValue("", parser.getAttributeName(i))
-                                    .endsWith(".html") ||
-                                    parser.getAttributeValue("", parser.getAttributeName(i)).endsWith(".xhtml")) {
+                                            .endsWith(".html") ||
+                                    parser.getAttributeValue("", parser.getAttributeName(i))
+                                            .endsWith(".xhtml")) {
                                 createDirectory(
                                         parser.getAttributeValue("", parser.getAttributeName(i)));
                                 String filename = "/NewEpubReader/" + parser.getAttributeValue("",
@@ -359,22 +358,22 @@ public class ReaderViewActivity extends RootActivity {
                                                     parser.getAttributeName(i)),
                                             "href=\"file://"
                                                     + Environment.getExternalStorageDirectory()
-                                                    .getAbsolutePath() + filename );
+                                                    .getAbsolutePath() + filename);
                                     htmlItem = htmlItem.replaceAll(
                                             "href=\"../" + parser.getAttributeValue("",
-                                                    parser.getAttributeName(i)) ,
+                                                    parser.getAttributeName(i)),
                                             "href=\"file://"
                                                     + Environment.getExternalStorageDirectory()
-                                                    .getAbsolutePath() + filename );
+                                                    .getAbsolutePath() + filename);
                                     htmlItem = htmlItem.replaceAll(
                                             "src=\"" + parser.getAttributeValue("",
-                                                    parser.getAttributeName(i)) ,
+                                                    parser.getAttributeName(i)),
                                             "src=\"file://"
                                                     + Environment.getExternalStorageDirectory()
-                                                    .getAbsolutePath() + filename );
+                                                    .getAbsolutePath() + filename);
                                     htmlItem = htmlItem.replaceAll(
                                             "src=\"../" + parser.getAttributeValue("",
-                                                    parser.getAttributeName(i)) ,
+                                                    parser.getAttributeName(i)),
                                             "src=\"file://"
                                                     + Environment.getExternalStorageDirectory()
                                                     .getAbsolutePath() + filename);
@@ -409,10 +408,9 @@ public class ReaderViewActivity extends RootActivity {
                     case XmlPullParser.START_TAG:
                         if (parser.getName().equalsIgnoreCase("spine") || spineFlag == 1) {
                             spineFlag = 1;
-                            Log.e("ReaderViewActivity",
-                                    "spine => " + parser.getAttributeValue("", "idref"));
-                            if(parser.getAttributeValue("","idref")!=null){
-                                fileSeqList.add(idHrefMap.get(parser.getAttributeValue("", "idref")));
+                            if (parser.getAttributeValue("", "idref") != null) {
+                                fileSeqList.add(
+                                        idHrefMap.get(parser.getAttributeValue("", "idref")));
                             }
                         }
                         if (parser.getName().equalsIgnoreCase("item") || itemFlag == 1) {
@@ -422,7 +420,6 @@ public class ReaderViewActivity extends RootActivity {
                         }
                         break;
                     case XmlPullParser.END_TAG:
-                        Log.e("ReaderViewActivity", "End Tag => " + parser.getName());
                         if (parser.getName().equalsIgnoreCase("spine")) {
                             spineFlag = 0;
                         }
