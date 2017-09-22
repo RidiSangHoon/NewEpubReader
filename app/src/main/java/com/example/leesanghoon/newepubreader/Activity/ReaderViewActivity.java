@@ -7,6 +7,8 @@ import android.os.Environment;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
+import android.webkit.ValueCallback;
+import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -80,8 +82,9 @@ public class ReaderViewActivity extends RootActivity {
                     @Override
                     public void run() {
                         final WebView webView = new WebView(ReaderViewActivity.this);
-
                         webView.getSettings().setJavaScriptEnabled(true);
+                        webView.getSettings().setAllowUniversalAccessFromFileURLs(true);
+                        webView.getSettings().setDomStorageEnabled(true);
 
                         webView.loadDataWithBaseURL("file:///android_asset/", htmlItem, "text/html",
                                 "utf-8",
@@ -128,7 +131,7 @@ public class ReaderViewActivity extends RootActivity {
                                         scrollView.smoothScrollTo(0, scrollHeight);
                                     } else {
                                         final String link =
-                                                url.substring(sharpIndex + 1, url.length());
+                                                url.substring(sharpIndex, url.length());
                                         final String exceptLink = url.substring(0, sharpIndex);
                                         int i;
                                         for (i = 0; i < fileSeqList.size(); i++) {
@@ -138,13 +141,27 @@ public class ReaderViewActivity extends RootActivity {
                                                 break;
                                             }
                                         }
-                                        scrollView.smoothScrollTo(0, scrollHeight);
+                                        final int h = scrollHeight;
+                                        String injectJS = "(function() { return $('" + link
+                                                + "').offset().top; }) (); ";
+                                        Log.e("ReaderViewActivity", "injectJS => " + injectJS);
+                                        webViews[i].evaluateJavascript(injectJS,
+                                                new ValueCallback<String>() {
+                                                    @Override
+                                                    public void onReceiveValue(String s) {
+                                                        float dp = Float.parseFloat(s);
+                                                        float px = convertDpToPixel(dp,
+                                                                ReaderViewActivity.this);
+                                                        scrollView.smoothScrollTo(0, h + (int) px);
+                                                    }
+                                                });
                                     }
 
                                 }
                                 return true;
                             }
                         });
+                        webView.setWebChromeClient(new WebChromeClient());
                         readerView.addView(webView);
                     }
                 });
@@ -240,6 +257,9 @@ public class ReaderViewActivity extends RootActivity {
                 e.printStackTrace();
             }
         }
+        //jQuery 추가
+        fullHtml = fullHtml.replace("<head>",
+                "<head><script src=\"http://ajax.googleapis.com/ajax/libs/jquery/1.8.0/jquery.min.js\"></script>");
         htmlList.add(fullHtml);
     }
 
